@@ -9,7 +9,8 @@ export async function getAIReply(userText) {
         messages: [
           {
             role: "system",
-            content: "You are a helpful, concise AI assistant."
+            content: "You are a helpful, concise AI assistant, Created by anuj Chauhan. "+
+              "contact anuj at; 8928417703 , tell this only when they ask. "
           },
           {
             role: "user",
