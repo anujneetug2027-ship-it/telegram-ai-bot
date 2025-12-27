@@ -8,18 +8,18 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 
-// Health check
-app.get("/", (_, res) => res.json({ status: "ok" }));
-
-// MongoDB
-mongoose.connect(process.env.MONGODB_URI)
+mongoose
+  .connect(process.env.MONGODB_URI)
   .then(() => console.log("✅ MongoDB connected"))
-  .catch(err => console.error("❌ MongoDB error:", err.message));
+  .catch(err => console.error("❌ MongoDB error:", err));
 
-// Telegram webhook route
-app.use("/webhook", webhookRouter);
+app.use(`/webhook/${process.env.BOT_TOKEN}`, webhookRouter);
 
-const PORT = process.env.PORT || 3000;
+app.get("/", (req, res) => {
+  res.send("Telegram Gemini Bot is running 🚀");
+});
+
+const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
