@@ -1,6 +1,6 @@
 import express from "express";
 import axios from "axios";
-import User from "../models/User.js";
+import TelegramUser from "../models/User.js";
 import { getAIReply } from "../services/ai.js";
 
 const router = express.Router();
@@ -13,40 +13,70 @@ router.post("/", async (req, res) => {
     if (!message?.text) return res.sendStatus(200);
 
     const chatId = message.chat.id;
-    const text = message.text.trim();
     const telegramId = String(message.from.id);
+    const text = message.text.trim();
 
-    // Save user (ID only)
-    await User.findOneAndUpdate(
-      { telegramId },
-      {},
-      { upsert: true, setDefaultsOnInsert: true }
-    );
+    // Find or create user
+    let user = await TelegramUser.findOne({ telegramId });
+    if (!user) {
+      user = await TelegramUser.create({ telegramId });
+    }
 
-    // Commands
-    if (text === "/start") {
+    // If user has no name yet → save first reply as name
+    if (!user.name && text !== "/start") {
+      user.name = text;
+      await user.save();
+
       await axios.post(`${TG_API}/sendMessage`, {
         chat_id: chatId,
-        text: "👋 Hi! Send me any message and I’ll reply with AI."
+        text: `Nice to meet you, ${user.name} 😊`
       });
+
       return res.sendStatus(200);
     }
 
-    // Typing indicator
-    await axios.post(`${TG_API}/sendChatAction`, {
-      chat_id: chatId,
-      action: "typing"
-    });
+    // /start command
+    if (text === "/start") {
+      if (!user.name) {
+        await axios.post(`${TG_API}/sendMessage`, {
+          chat_id: chatId,
+          text: "Hi 👋 I am a chatbot.\nHow may I call you?"
+        });
+      } else {
+        await axios.post(`${TG_API}/sendMessage`, {
+          chat_id: chatId,
+          text: `Welcome back, ${user.name} 👋`
+        });
+      }
+      return res.sendStatus(200);
+    }
 
-    // AI reply
-    const reply = await getAIReply(text);
+    // Build AI context (THIS IS THE KEY PART)
+    let userContext;
+
+    if (!user.name) {
+      userContext = `
+The user has not provided their name yet.
+At the end of your reply, politely ask:
+"By the way, how may I call you?"
+`;
+    } else {
+      userContext = `
+The user's name is ${user.name}.
+Greet the user naturally using their name.
+`;
+    }
+
+    // Get AI reply
+    const aiReply = await getAIReply(text, userContext);
 
     await axios.post(`${TG_API}/sendMessage`, {
       chat_id: chatId,
-      text: reply
+      text: aiReply
     });
 
     return res.sendStatus(200);
+
   } catch (err) {
     console.error("Webhook error:", err.message);
     return res.sendStatus(200);
