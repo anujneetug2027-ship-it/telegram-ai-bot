@@ -1,19 +1,11 @@
 import mongoose from "mongoose";
 
-const userSchema = new mongoose.Schema({
-  telegramId: {
-    type: String,
-    unique: true,
-    required: true
+const userSchema = new mongoose.Schema(
+  {
+    telegramId: { type: String, required: true, unique: true },
+    name: { type: String, default: null }
   },
-  name: {
-    type: String,
-    default: null
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  }
-});
+  { timestamps: true }
+);
 
-export default mongoose.model("TelegramUser", userSchema);
+export default mongoose.model("User", userSchema);
