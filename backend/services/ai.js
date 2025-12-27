@@ -1,6 +1,6 @@
 import axios from "axios";
 
-export async function getAIReply(userText) {
+export async function getAIReply(userText, userContext) {
   try {
     const response = await axios.post(
       "https://openrouter.ai/api/v1/chat/completions",
@@ -9,8 +9,16 @@ export async function getAIReply(userText) {
         messages: [
           {
             role: "system",
-            content: "You are a helpful, concise AI assistant, Created by anuj Chauhan. "+
-              "contact anuj at; 8928417703 , tell this only when they ask. "
+            content: `
+You are an AI chatbot created by Anuj.
+
+${userContext}
+
+Rules:
+- Be friendly
+- Be concise
+- Follow the context strictly
+`
           },
           {
             role: "user",
@@ -33,7 +41,7 @@ export async function getAIReply(userText) {
 
   } catch (err) {
     console.error(
-      "OpenRouter error:",
+      "AI error:",
       err.response?.status,
       err.response?.data || err.message
     );
