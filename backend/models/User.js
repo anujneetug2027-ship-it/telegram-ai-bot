@@ -4,7 +4,11 @@ const userSchema = new mongoose.Schema({
   telegramId: {
     type: String,
     unique: true,
-    index: true
+    required: true
+  },
+  name: {
+    type: String,
+    default: null
   },
   createdAt: {
     type: Date,
@@ -12,4 +16,4 @@ const userSchema = new mongoose.Schema({
   }
 });
 
-export default mongoose.model("User", userSchema);
+export default mongoose.model("TelegramUser", userSchema);
