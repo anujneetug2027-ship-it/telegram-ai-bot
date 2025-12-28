@@ -1,50 +1,56 @@
-
 import express from "express";
 import axios from "axios";
-import User from "../models/user.js";
-import { askAI } from "../services/ai.js";
+import User from "../models/User.js";
+import { getAIReply } from "../services/ai.js";
 
 const router = express.Router();
-const TELEGRAM_API = `https://api.telegram.org/bot${process.env.BOT_TOKEN}`;
+
+const TG_API = `https://api.telegram.org/bot${process.env.BOT_TOKEN}`;
 
 router.post("/", async (req, res) => {
-  const msg = req.body.message;
-  if (!msg || !msg.text) return res.sendStatus(200);
+  try {
+    const message = req.body?.message;
+    if (!message?.text) return res.sendStatus(200);
 
-  const chatId = msg.chat.id.toString();
-  const text = msg.text.trim();
+    const chatId = message.chat.id;
+    const text = message.text.trim();
+    const telegramId = String(message.from.id);
 
-  let user = await User.findOne({ telegramId: chatId });
+    // Save user (ID only)
+    await User.findOneAndUpdate(
+      { telegramId },
+      {},
+      { upsert: true, setDefaultsOnInsert: true }
+    );
 
-  // New user → ask name
-  if (!user) {
-    await User.create({ telegramId: chatId });
-    await sendMessage(chatId, "👋 Hi! What should I call you?");
+    // Commands
+    if (text === "/start") {
+      await axios.post(`${TG_API}/sendMessage`, {
+        chat_id: chatId,
+        text: "👋 Hi! Send me any message and I’ll reply with AI."
+      });
+      return res.sendStatus(200);
+    }
+
+    // Typing indicator
+    await axios.post(`${TG_API}/sendChatAction`, {
+      chat_id: chatId,
+      action: "typing"
+    });
+
+    // AI reply
+    const reply = await getAIReply(text);
+
+    await axios.post(`${TG_API}/sendMessage`, {
+      chat_id: chatId,
+      text: reply
+    });
+
+    return res.sendStatus(200);
+  } catch (err) {
+    console.error("Webhook error:", err.message);
     return res.sendStatus(200);
   }
-
-  // Name not saved yet
-  if (!user.name) {
-    user.name = text;
-    await user.save();
-    await sendMessage(chatId, `Nice to meet you, ${user.name} 😊`);
-    return res.sendStatus(200);
-  }
-
-  // Normal AI chat
-  const reply = await askAI(
-    `The user's name is ${user.name}. Reply politely.\nUser: ${text}`
-  );
-
-  await sendMessage(chatId, reply);
-  res.sendStatus(200);
 });
-
-async function sendMessage(chatId, text) {
-  await axios.post(`${TELEGRAM_API}/sendMessage`, {
-    chat_id: chatId,
-    text
-  });
-}
 
 export default router;
