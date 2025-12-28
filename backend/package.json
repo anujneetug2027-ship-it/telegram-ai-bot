@@ -1,5 +1,5 @@
 {
-  "name": "telegram-gemini-bot",
+  "name": "telegram-ai-bot",
   "version": "1.0.0",
   "type": "module",
   "main": "server.js",
@@ -7,10 +7,9 @@
     "start": "node server.js"
   },
   "dependencies": {
-    "@google/genai": "^0.6.0",
-    "axios": "^1.6.8",
+    "axios": "^1.6.7",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
-    "mongoose": "^8.4.0"
+    "mongoose": "^8.4.1"
   }
 }
