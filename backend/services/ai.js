@@ -1,18 +1,41 @@
-import { GoogleGenAI } from "@google/genai";
+import axios from "axios";
 
-// Reads GEMINI_API_KEY automatically from env
-const ai = new GoogleGenAI({});
-
-export async function askAI(prompt) {
+export async function getAIReply(userText) {
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt
-    });
+    const response = await axios.post(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        model: "meta-llama/llama-3.3-70b-instruct:free",
+        messages: [
+          {
+            role: "system",
+            content: "You are a helpful, concise AI assistant."
+          },
+          {
+            role: "user",
+            content: userText
+          }
+        ]
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          "HTTP-Referer": process.env.SITE_URL || "https://example.com",
+          "X-Title": process.env.SITE_NAME || "Telegram AI Bot"
+        },
+        timeout: 30000
+      }
+    );
 
-    return response.text;
-  } catch (error) {
-    console.error("Gemini AI error:", error);
+    return response.data.choices[0].message.content;
+
+  } catch (err) {
+    console.error(
+      "OpenRouter error:",
+      err.response?.status,
+      err.response?.data || err.message
+    );
     return "⚠️ AI service is temporarily unavailable.";
   }
 }
